@@ -5,4 +5,5 @@ import { defineControlPoints } from "@fireweaveai/web-sdk/start";
 export const controlPoints = defineControlPoints({
   "stat-alert": { local: true },
   "age-tint": { local: true },
+  "owner-chip": { local: true },
 });
