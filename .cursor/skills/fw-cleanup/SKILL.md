@@ -6,14 +6,16 @@ description: "Local cleanup for FireWeave Rollouts. Lists the control points fw-
 
 # Cleanup (remove stable control points from this branch)
 
-A control point is ready to clean when **fw-server says this branch's
-environment set is ready**: every environment whose exact rule names the
-checked-out branch, and every environment reached from those by promotion,
-has a newest rollout that is `completed` with the link marked stable. One
-environment that is not ready keeps the key off the list. That is the only
-gate. Cleanup works on the checked-out branch: it edits code, retires the
-manifest on this branch, and leaves the change in the working tree. The user
-reviews and commits it; nothing is committed or pushed for them.
+A control point is ready to clean when **fw-server says the rollout is
+finished**. On a branch an environment deploys (usually `main`), every
+environment that branch ships to must have a newest rollout that is
+`completed` with the link marked stable. On any other branch — the branch
+someone is working on — FireWeave uses that production branch's rollouts, so
+they do not check out `main` first. One environment that is not ready keeps
+the key off the list. That is the only gate. The edit stays on the branch
+they have open: it changes code, retires the manifest on this branch, and
+leaves the change in the working tree. The user reviews and commits it;
+nothing is committed or pushed for them.
 
 ## Running FireWeave's tools (`fw tool`)
 
@@ -66,7 +68,7 @@ this repo is bound to a project.
 
 ### Step 1 — Stable control points in this branch
 
-Run `fw tool find-cleanup-candidates`. It sends the checked-out branch and does no environment mapping of its own. fw-server returns only the keys that branch's environment set calls ready, and for each the tool reports where its `@fireweave-controlpoint` anchors sit in this branch and which live manifest declares it. An `fw` that does not send the checked-out branch is older than this skill: `fw self-update`, then `fw plugins install fireweave`. The manifests come from the **shipped set** through the FireWeave seam (fw-server → `.fireweave/.cache/` projection), with `retiring` tombstones already applied — **never a listing of `.fireweave/rollout-ready/`**.
+Run `fw tool find-cleanup-candidates`. It sends the checked-out branch and does no environment mapping of its own. fw-server returns the keys that are ready to remove: this branch's own environments when it is a deploy branch, otherwise the production branch's. For each, the tool reports where its `@fireweave-controlpoint` anchors sit in this branch and which live manifest declares it. An `fw` that does not send the checked-out branch is older than this skill: `fw self-update`, then `fw plugins install fireweave`. The manifests come from the **shipped set** through the FireWeave seam (fw-server → `.fireweave/.cache/` projection), with `retiring` tombstones already applied — **never a listing of `.fireweave/rollout-ready/`**.
 
 - `result.candidates[]`: `flagKey`, `rolloutName`, `stableAt`, `anchors` (`file`, `line`) and `feature` / `changeId` / `stampId` of the declaring manifest (`null` when no live manifest declares it).
 - `result.alreadyGone[]`: stable on the server, but no anchor and no live manifest here. Nothing to do in this branch.
@@ -91,7 +93,7 @@ Leave unrelated code alone.
 
 ### Step 4 — Retire the manifest
 
-When the candidate has a `feature`, run `fw manifest retire --feature <feature> --branch <this branch> --json` → `POST /v1/repo-manifests/retire`. It is a typed command, not an `fw tool`, so the host asks the user before it runs. **There is no `_archive/` directory and no stamp file to move** — archival is a `status` on a server row, and change stamps are archived with the manifest in the same transaction (M2). The retiring manifest is branch-scoped by design. Idempotent: a second call returns `already-retiring`, which is a success. `404 MANIFEST_NOT_SHIPPED` means nothing shipped this feature — do **not** "fix" it by authoring or archiving something else. `409 CLEANUP_NOT_READY` means this branch's environment set is not ready: the message names each environment that is not. Stop. Do not retire a different feature and do not edit the code to force it. With no `feature` (and no `absence`), there is no manifest to retire: the code edit is the whole cleanup.
+When the candidate has a `feature`, run `fw manifest retire --feature <feature> --branch <this branch> --json` → `POST /v1/repo-manifests/retire`. It is a typed command, not an `fw tool`, so the host asks the user before it runs. **There is no `_archive/` directory and no stamp file to move** — archival is a `status` on a server row, and change stamps are archived with the manifest in the same transaction (M2). The retiring manifest is branch-scoped by design. Idempotent: a second call returns `already-retiring`, which is a success. `404 MANIFEST_NOT_SHIPPED` means nothing shipped this feature — do **not** "fix" it by authoring or archiving something else. `409 CLEANUP_NOT_READY` means a rollout is not finished: the message names each environment that is not. Stop. Do not retire a different feature and do not edit the code to force it. With no `feature` (and no `absence`), there is no manifest to retire: the code edit is the whole cleanup.
 
 Then run `fw sync`, so this branch's view drops the retired manifest.
 
