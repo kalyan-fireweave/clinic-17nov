@@ -6,4 +6,5 @@ export const controlPoints = defineControlPoints({
   "stat-alert": { local: true },
   "age-tint": { local: true },
   "owner-chip": { local: true },
+  "stat-pin": { local: true },
 });
