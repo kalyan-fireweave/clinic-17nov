@@ -21,6 +21,8 @@ import { inFlight, listSignature } from "../lib/list";
 import { useTick } from "../lib/tick";
 import { ago } from "../lib/time";
 import { publishMetric } from "../lib/publish-metric";
+import { ageTintBackground, waitingAgeMs } from "../lib/age-tint";
+import { reportAgeTintError, useAgeTint } from "./AgeTint";
 import { pdfFiles, postReferral } from "../lib/upload";
 
 type Referral = {
@@ -98,6 +100,7 @@ function nextLine(row: Referral) {
 
 export function InboxTable() {
   const now = useTick();
+  const ageTint = useAgeTint();
   const { setInboxRows } = useCounts();
   const toast = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -420,9 +423,14 @@ export function InboxTable() {
             </thead>
             <tbody>
               {visible.map((row) => {
+                if (ageTint && row.createdAt && waitingAgeMs(row.createdAt, now) === null) reportAgeTintError();
                 const ready = row.status === "awaiting_review";
                 return (
-                  <tr key={row.id} className={flash === row.id ? "row-flash" : ""}>
+                  <tr
+                    key={row.id}
+                    className={flash === row.id ? "row-flash" : ""}
+                    style={ageTint && ageTintBackground(waitingAgeMs(row.createdAt, now), row.status) ? { background: "#fff3d6" } : undefined}
+                  >
                     <td>
                       <h2 className="patient">{row.patientName ?? row.filename}</h2>
                       <div className="muted">{row.filename}</div>
