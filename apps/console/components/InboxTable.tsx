@@ -172,7 +172,6 @@ export function InboxTable() {
     let alive = true;
     const read = () => {
       if (!alive) return;
-      // @fireweave-controlpoint triage
       const decision = fw.controlPoints.getBooleanDetails("triage", false);
       const on = decision.value === true;
       if (!alive) return;
