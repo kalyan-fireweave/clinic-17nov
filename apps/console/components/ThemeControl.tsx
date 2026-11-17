@@ -63,6 +63,7 @@ export function ThemeControl() {
       if (!alive) return;
       const started = performance.now();
       // @fireweave-controlpoint theme
+      // Stays off until the rollout for this control point advances.
       const decision = fw.controlPoints.getBooleanDetails("theme", false);
       const on = decision.value === true;
       if (!alive) return;
