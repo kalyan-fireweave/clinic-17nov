@@ -21,6 +21,7 @@ import { inFlight, listSignature } from "../lib/list";
 import { useTick } from "../lib/tick";
 import { ago } from "../lib/time";
 import { publishMetric } from "../lib/publish-metric";
+import { reportEmptyHintError, useEmptyHint } from "./EmptyHint";
 import { pinStatFirst } from "../lib/stat-pin";
 import { reportStatPinError, useStatPin } from "./StatPin";
 import { ownerLabel } from "../lib/owner-chip";
@@ -105,6 +106,7 @@ function nextLine(row: Referral) {
 
 export function InboxTable() {
   const now = useTick();
+  const emptyHint = useEmptyHint();
   const statPin = useStatPin();
   const ownerChip = useOwnerChip();
   const ageTint = useAgeTint();
@@ -388,6 +390,8 @@ export function InboxTable() {
             }
           />
         ) : null}
+        {rows && rows.length === 0 && emptyHint ? <p className="muted">{emptyHint}</p> : null}
+        {rows && rows.length === 0 && emptyHint === "" ? reportEmptyHintError() : null}
         {rows && rows.length > 0 && visible.length === 0 ? (
           <EmptyState
             title="Nothing matches these filters."
