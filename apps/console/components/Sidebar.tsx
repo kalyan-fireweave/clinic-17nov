@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCounts } from "../lib/counts";
 import { Button } from "./Button";
+import { ThemeControl } from "./ThemeControl";
 
 type Props = {
   clinicName: string;
@@ -88,6 +89,7 @@ export function Sidebar({ clinicName, userName, role }: Props) {
         ))}
       </div>
       <div className="sidebar-foot">
+        <ThemeControl />
         <Link className="btn btn-ghost btn-sm" href="/help">
           Help
         </Link>
