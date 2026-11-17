@@ -43,11 +43,9 @@ function paint(mode: ThemeMode) {
 }
 
 export function ThemeControl() {
-  const [enabled, setEnabled] = useState(false);
   const [mode, setMode] = useState<ThemeMode>("light");
   const reached = useRef(false);
   const restored = useRef(false);
-  const reportedError = useRef(false);
   const reportedFailure = useRef(false);
   const lastHealth = useRef<number | null>(null);
 
@@ -58,64 +56,26 @@ export function ThemeControl() {
   }
 
   useEffect(() => {
-    let alive = true;
-    const read = () => {
-      if (!alive) return;
-      const started = performance.now();
-      // @fireweave-controlpoint theme
-      // Stays off until the rollout for this control point advances.
-      const decision = fw.controlPoints.getBooleanDetails("theme", false);
-      const on = decision.value === true;
-      if (!alive) return;
-      if (decision.reason === "ERROR") {
-        paint("light");
-        setEnabled(false);
-        if (!reportedError.current) {
-          reportedError.current = true;
-          metrics.increment("clinic_theme_apply_error_total");
-          reportHealth(1);
+    const started = performance.now();
+    if (!reached.current) {
+      reached.current = true;
+      metrics.increment("clinic_theme_switch_reached_total");
+    }
+    try {
+      const stored = window.localStorage.getItem(STORAGE_KEY);
+      if (stored === "dark" || stored === "light") {
+        paint(stored);
+        setMode(stored);
+        if (!restored.current) {
+          restored.current = true;
+          metrics.increment("clinic_theme_apply_success_total");
+          metrics.record("clinic_theme_apply_duration_ms", Math.max(0, performance.now() - started));
         }
-        return;
-      }
-      setEnabled(on);
-      if (!on) {
-        paint("light");
-        setMode("light");
         reportHealth(0);
         return;
       }
-      if (!reached.current) {
-        reached.current = true;
-        metrics.increment("clinic_theme_switch_reached_total");
-      }
-      try {
-        const stored = window.localStorage.getItem(STORAGE_KEY);
-        if (stored === "dark" || stored === "light") {
-          paint(stored);
-          setMode(stored);
-          if (!restored.current) {
-            restored.current = true;
-            metrics.increment("clinic_theme_apply_success_total");
-            metrics.record("clinic_theme_apply_duration_ms", Math.max(0, performance.now() - started));
-          }
-          reportHealth(0);
-          return;
-        }
-        if (stored !== null) {
-          window.localStorage.removeItem(STORAGE_KEY);
-          paint("light");
-          setMode("light");
-          if (!reportedFailure.current) {
-            reportedFailure.current = true;
-            metrics.increment("clinic_theme_apply_failure_total");
-            reportHealth(1);
-          }
-          return;
-        }
-        paint("light");
-        setMode("light");
-        reportHealth(0);
-      } catch {
+      if (stored !== null) {
+        window.localStorage.removeItem(STORAGE_KEY);
         paint("light");
         setMode("light");
         if (!reportedFailure.current) {
@@ -123,20 +83,21 @@ export function ThemeControl() {
           metrics.increment("clinic_theme_apply_failure_total");
           reportHealth(1);
         }
+        return;
       }
-    };
-    read();
-    const unsubscribe = fw.subscribe(read);
-    void fw.ready.then(() => {
-      if (alive) read();
-    });
-    return () => {
-      alive = false;
-      unsubscribe();
-    };
+      paint("light");
+      setMode("light");
+      reportHealth(0);
+    } catch {
+      paint("light");
+      setMode("light");
+      if (!reportedFailure.current) {
+        reportedFailure.current = true;
+        metrics.increment("clinic_theme_apply_failure_total");
+        reportHealth(1);
+      }
+    }
   }, []);
-
-  if (!enabled) return null;
 
   function choose(next: ThemeMode) {
     const started = performance.now();

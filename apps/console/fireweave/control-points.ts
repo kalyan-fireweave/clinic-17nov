@@ -3,6 +3,5 @@
 import { defineControlPoints } from '@fireweaveai/web-sdk/start';
 
 export const controlPoints = defineControlPoints({
-  theme: { local: true },
   triage: { local: true },
 });
