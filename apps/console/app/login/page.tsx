@@ -5,6 +5,7 @@ import { createAuthClient } from "better-auth/react";
 import Link from "next/link";
 import { useState } from "react";
 import { Button } from "../../components/Button";
+import { ThemeControl } from "../../components/ThemeControl";
 import { COPY } from "../../lib/copy";
 import { ERROR_CODES } from "../../lib/errors";
 
@@ -53,6 +54,7 @@ export default function LoginPage() {
         <Button variant="primary" type="submit" loading={pending}>
           Sign in
         </Button>
+        <ThemeControl />
         <div className="switch">
           <span className="muted">New clinic?</span>
           <Link className="btn btn-ghost btn-md" href="/signup">
