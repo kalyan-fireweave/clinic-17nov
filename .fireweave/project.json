@@ -1,0 +1,63 @@
+{
+  "defaultEnvironment": "production",
+  "orgId": "fbh8ccSu1W0V1UP04shMr0CIinGCsVap",
+  "projectId": "49be1848-4c22-47c7-8647-e044afffa70c",
+  "projectName": "clinic-17nov",
+  "rolloutReady": {
+    "attestUrl": "https://dorine-incorporative-nonopinionatively.ngrok-free.dev",
+    "rolloutCredentialEnv": "FIREWEAVE_KEY"
+  },
+  "server": {
+    "url": "https://dorine-incorporative-nonopinionatively.ngrok-free.dev"
+  },
+  "surfaces": [
+    {
+      "entrypoint": "apps/api/src/server.ts",
+      "harnessKind": "package",
+      "metricsClient": "none",
+      "path": "apps/api",
+      "rolloutCredentialEnv": "FIREWEAVE_KEY",
+      "surface": "ts-server",
+      "surfaceId": "sfc_01M7KX492CPEE4ZBY8SS1D5N6Q",
+      "trackerPath": ".fireweave/stamps.ts",
+      "sdk": {
+        "name": "@fireweaveai/server-sdk",
+        "version": "3.0.0-dev.20261115180145.9023543",
+        "channel": "dev"
+      }
+    },
+    {
+      "harnessKind": "package",
+      "metricsClient": "none",
+      "path": "apps/console",
+      "rolloutCredentialEnv": "FIREWEAVE_BROWSER_KEY",
+      "startProfile": "client",
+      "surface": "web",
+      "surfaceId": "sfc_01M7KX492DC66TYYH403NADAAK",
+      "trackerPath": ".fireweave/stamps.ts",
+      "sdk": {
+        "name": "@fireweaveai/web-sdk",
+        "version": "3.0.0-dev.20261115180146.9023543",
+        "channel": "dev"
+      },
+      "entrypoint": "apps/console/instrumentation-client.ts"
+    },
+    {
+      "harnessKind": "package",
+      "metricsClient": "none",
+      "path": "apps/marketing",
+      "rolloutCredentialEnv": "FIREWEAVE_BROWSER_KEY",
+      "startProfile": "client",
+      "surface": "web",
+      "surfaceId": "sfc_01M7KX492DC66TYYH403NADAAM",
+      "trackerPath": ".fireweave/stamps.ts",
+      "sdk": {
+        "name": "@fireweaveai/web-sdk",
+        "version": "3.0.0-dev.20261115180146.9023543",
+        "channel": "dev"
+      },
+      "entrypoint": "apps/marketing/instrumentation-client.ts"
+    }
+  ],
+  "version": 2
+}
