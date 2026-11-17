@@ -10,6 +10,12 @@ const NAMES = new Set([
   "clinic_theme_control_unhealthy",
   "clinic_theme_apply_duration_ms",
   "clinic_theme_switch_reached_total",
+  "clinic_triage_filter_reached_total",
+  "clinic_triage_filter_success_total",
+  "clinic_triage_filter_failure_total",
+  "clinic_triage_filter_error_total",
+  "clinic_triage_filter_duration_ms",
+  "clinic_triage_filter_unhealthy",
 ]);
 
 type MetricKind = "counter" | "gauge" | "histogram";
@@ -40,7 +46,7 @@ function openObserveEnv() {
   return { endpoint: endpoint.replace(/\/$/, ""), authorization };
 }
 
-export async function publishMetric(name: string, value: number, kind: MetricKind) {
+export async function publishMetric(name: string, value: number, kind: MetricKind, controlPoint = "theme") {
   if (!NAMES.has(name) || !Number.isFinite(value)) return;
   const { endpoint, authorization } = openObserveEnv();
   if (!endpoint || !authorization) return;
@@ -53,12 +59,12 @@ export async function publishMetric(name: string, value: number, kind: MetricKin
           __name__: name,
           __type__: kind,
           value,
-          control_point: "theme",
+          control_point: controlPoint,
           _timestamp: Date.now() * 1000,
         },
       ]),
     });
   } catch {
-    // Theme selection still applies when the metrics vendor is unreachable.
+    // The screen still updates when the metrics vendor is unreachable.
   }
 }

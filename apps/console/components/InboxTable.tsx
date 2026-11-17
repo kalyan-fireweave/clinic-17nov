@@ -1,5 +1,6 @@
 "use client";
 
+import { fw } from "@fireweaveai/web-sdk/start";
 import { ChevronRight } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Banner } from "./Banner";
@@ -19,6 +20,7 @@ import { useCounts } from "../lib/counts";
 import { inFlight, listSignature } from "../lib/list";
 import { useTick } from "../lib/tick";
 import { ago } from "../lib/time";
+import { publishMetric } from "../lib/publish-metric";
 import { pdfFiles, postReferral } from "../lib/upload";
 
 type Referral = {
@@ -45,6 +47,48 @@ const filters = [
   ["failed", "Could not read"],
 ] as const;
 
+const triageFilters = [
+  ["all", "All"],
+  ["STAT", "STAT"],
+  ["symptomatic", "Symptomatic"],
+  ["screening", "Screening"],
+] as const;
+
+const TRIAGE_KEY = "clinic-triage-filter";
+
+type SignalKind = "health" | "error" | "metric" | "outcome";
+
+const metrics = {
+  increment(name: string) {
+    note(name, 1, "counter");
+  },
+  record(name: string, value: number) {
+    note(name, value, "histogram");
+  },
+  gauge(name: string, value: number) {
+    note(name, value, "gauge");
+  },
+};
+
+function note(name: string, value: number, kind: "counter" | "gauge" | "histogram") {
+  const signal = signalFor(name, value);
+  const runtime = fw.client() as { runtime?: { recordSignal?: (signal: typeof signal) => void } } | undefined;
+  runtime?.runtime?.recordSignal?.({ ...signal, controlPointKey: "triage", value });
+  void publishMetric(name, value, kind, "triage");
+}
+
+function signalFor(name: string, value: number): { kind: SignalKind; name: string; status?: string } {
+  if (name === "clinic_triage_filter_success_total") return { kind: "outcome", name, status: "success" };
+  if (name === "clinic_triage_filter_failure_total") return { kind: "outcome", name, status: "failure" };
+  if (name === "clinic_triage_filter_error_total") return { kind: "error", name, status: "error" };
+  if (name === "clinic_triage_filter_unhealthy") return { kind: "health", name, status: value > 0 ? "unhealthy" : "ok" };
+  return { kind: "metric", name, status: "recorded" };
+}
+
+function allowedTriage(value: string) {
+  return value === "all" || value === "STAT" || value === "symptomatic" || value === "screening";
+}
+
 function nextLine(row: Referral) {
   if (row.status === "fax_back") return row.detail ? `Send it back — ${row.detail}` : "Send it back";
   if (row.status === "failed") return "Could not read this fax";
@@ -59,7 +103,47 @@ export function InboxTable() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [rows, setRows] = useState<Referral[] | null>(null);
   const [filter, setFilter] = useState("all");
+  const [triageOn, setTriageOn] = useState(false);
+  const [triage, setTriage] = useState("all");
   const [query, setQuery] = useState("");
+  const reached = useRef(false);
+  const restored = useRef(false);
+  const reportedError = useRef(false);
+  const reportedFailure = useRef(false);
+  const lastHealth = useRef<number | null>(null);
+
+  function reportHealth(value: number) {
+    if (lastHealth.current === value) return;
+    lastHealth.current = value;
+    metrics.gauge("clinic_triage_filter_unhealthy", value);
+  }
+
+  function chooseTriage(next: string) {
+    const started = performance.now();
+    if (!allowedTriage(next)) {
+      window.sessionStorage.removeItem(TRIAGE_KEY);
+      setTriage("all");
+      if (!reportedFailure.current) {
+        reportedFailure.current = true;
+        metrics.increment("clinic_triage_filter_failure_total");
+        reportHealth(1);
+      }
+      return;
+    }
+    try {
+      window.sessionStorage.setItem(TRIAGE_KEY, next);
+    } catch (error) {
+      setTriage("all");
+      if (error instanceof DOMException) metrics.increment("clinic_triage_filter_failure_total");
+      else metrics.increment("clinic_triage_filter_error_total");
+      reportHealth(1);
+      return;
+    }
+    setTriage(next);
+    metrics.increment("clinic_triage_filter_success_total");
+    metrics.record("clinic_triage_filter_duration_ms", Math.max(0, performance.now() - started));
+    reportHealth(0);
+  }
   const [drag, setDrag] = useState(false);
   const [openId, setOpenId] = useState("");
   const [tab, setTab] = useState<"details" | "pdf">("details");
@@ -82,6 +166,77 @@ export function InboxTable() {
 
   useEffect(() => {
     void load();
+  }, []);
+
+  useEffect(() => {
+    let alive = true;
+    const read = () => {
+      if (!alive) return;
+      // @fireweave-controlpoint triage
+      const decision = fw.controlPoints.getBooleanDetails("triage", false);
+      const on = decision.value === true;
+      if (!alive) return;
+      if (decision.reason === "ERROR") {
+        setTriageOn(false);
+        setTriage("all");
+        if (!reportedError.current) {
+          reportedError.current = true;
+          metrics.increment("clinic_triage_filter_error_total");
+          reportHealth(1);
+        }
+        return;
+      }
+      setTriageOn(on);
+      if (!on) {
+        setTriage("all");
+        reportHealth(0);
+        return;
+      }
+      if (!reached.current) {
+        reached.current = true;
+        metrics.increment("clinic_triage_filter_reached_total");
+      }
+      try {
+        const stored = window.sessionStorage.getItem(TRIAGE_KEY);
+        if (stored === null) {
+          reportHealth(0);
+          return;
+        }
+        if (!allowedTriage(stored)) {
+          window.sessionStorage.removeItem(TRIAGE_KEY);
+          setTriage("all");
+          if (!reportedFailure.current) {
+            reportedFailure.current = true;
+            metrics.increment("clinic_triage_filter_failure_total");
+            reportHealth(1);
+          }
+          return;
+        }
+        setTriage(stored);
+        if (!restored.current && stored !== "all") {
+          restored.current = true;
+          metrics.increment("clinic_triage_filter_success_total");
+          metrics.record("clinic_triage_filter_duration_ms", 0);
+        }
+        reportHealth(0);
+      } catch {
+        setTriage("all");
+        if (!reportedFailure.current) {
+          reportedFailure.current = true;
+          metrics.increment("clinic_triage_filter_failure_total");
+          reportHealth(1);
+        }
+      }
+    };
+    read();
+    const unsubscribe = fw.subscribe(read);
+    void fw.ready.then(() => {
+      if (alive) read();
+    });
+    return () => {
+      alive = false;
+      unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
@@ -170,13 +325,17 @@ export function InboxTable() {
     const list = rows ?? [];
     return list.filter((row) => {
       if (filter !== "all" && row.status !== filter) return false;
+      if (triageOn && triage !== "all" && row.triage !== triage) return false;
       const hay = `${row.patientName ?? ""} ${row.filename} ${row.reason ?? ""}`.toLowerCase();
       return hay.includes(query.trim().toLowerCase());
     });
-  }, [rows, filter, query]);
+  }, [rows, filter, query, triageOn, triage]);
 
   const open = rows?.find((row) => row.id === openId) ?? null;
   const counts = Object.fromEntries(filters.map(([id]) => [id, (rows ?? []).filter((row) => id === "all" || row.status === id).length]));
+  const triageCounts = Object.fromEntries(
+    triageFilters.map(([id]) => [id, (rows ?? []).filter((row) => id === "all" || row.triage === id).length]),
+  );
 
   return (
     <div
@@ -231,6 +390,16 @@ export function InboxTable() {
             </button>
           ))}
         </div>
+        {triageOn ? (
+          <div className="filters" role="group" aria-label="Triage">
+            {triageFilters.map(([id, name]) => (
+              <button key={id} className={triage === id ? "chip on" : "chip"} type="button" onClick={() => chooseTriage(id)}>
+                {name}
+                <span className="count">{triageCounts[id] ?? 0}</span>
+              </button>
+            ))}
+          </div>
+        ) : null}
         {rows == null ? <Skeleton /> : null}
         {rows && rows.length === 0 ? (
           <EmptyState
@@ -251,6 +420,7 @@ export function InboxTable() {
                 onClick={() => {
                   setFilter("all");
                   setQuery("");
+                  if (triageOn) chooseTriage("all");
                 }}
               >
                 Clear filters
