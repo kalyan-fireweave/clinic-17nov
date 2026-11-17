@@ -33,6 +33,9 @@ const NAMES = new Set([
   "clinic_empty_hint_reached_total",
   "clinic_empty_hint_error_total",
   "clinic_empty_hint_unhealthy",
+  "clinic_dup_hint_reached_total",
+  "clinic_dup_hint_error_total",
+  "clinic_dup_hint_unhealthy",
 ]);
 
 type MetricKind = "counter" | "gauge" | "histogram";

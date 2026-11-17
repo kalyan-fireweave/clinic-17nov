@@ -8,4 +8,5 @@ export const controlPoints = defineControlPoints({
   "owner-chip": { local: true },
   "stat-pin": { local: true },
   "empty-hint": { local: true },
+  "dup-hint": { local: true },
 });
