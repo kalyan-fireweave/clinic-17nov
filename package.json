@@ -6,7 +6,7 @@
     "node": ">=22"
   },
   "scripts": {
-    "test": "pnpm --filter @clinic/domain test && pnpm --filter @clinic/contracts test",
+    "test": "pnpm --filter @clinic/domain test && pnpm --filter @clinic/contracts test && pnpm --filter @clinic/console test",
     "e2e": "playwright test",
     "typecheck": "pnpm -r --if-present typecheck"
   },

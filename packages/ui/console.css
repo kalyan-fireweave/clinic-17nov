@@ -394,6 +394,7 @@ button.primary:disabled, a.primary[aria-disabled="true"] {
   padding: 0;
   color: var(--c-muted);
 }
+.toast-link { color: var(--c-blue); font-weight: 600; }
 .toast .bar {
   height: 2px;
   background: var(--c-mint);
