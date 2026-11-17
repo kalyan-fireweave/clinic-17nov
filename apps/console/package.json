@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@clinic/ui": "workspace:*",
-    "@fireweaveai/web-sdk": "3.0.0-dev.20261115180146.9023543",
+    "@fireweaveai/web-sdk": "3.0.0",
     "better-auth": "1.3.27",
     "lucide-react": "0.544.0",
     "next": "15.5.4",
