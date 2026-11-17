@@ -21,6 +21,8 @@ import { inFlight, listSignature } from "../lib/list";
 import { useTick } from "../lib/tick";
 import { ago } from "../lib/time";
 import { publishMetric } from "../lib/publish-metric";
+import { pinStatFirst } from "../lib/stat-pin";
+import { reportStatPinError, useStatPin } from "./StatPin";
 import { ownerLabel } from "../lib/owner-chip";
 import { reportOwnerChipError, useOwnerChip } from "./OwnerChip";
 import { ageTintBackground, waitingAgeMs } from "../lib/age-tint";
@@ -103,6 +105,7 @@ function nextLine(row: Referral) {
 
 export function InboxTable() {
   const now = useTick();
+  const statPin = useStatPin();
   const ownerChip = useOwnerChip();
   const ageTint = useAgeTint();
   const { setInboxRows } = useCounts();
@@ -295,13 +298,17 @@ export function InboxTable() {
 
   const visible = useMemo(() => {
     const list = rows ?? [];
-    return list.filter((row) => {
+    const filtered = list.filter((row) => {
       if (filter !== "all" && row.status !== filter) return false;
       if (triage !== "all" && row.triage !== triage) return false;
       const hay = `${row.patientName ?? ""} ${row.filename} ${row.reason ?? ""}`.toLowerCase();
       return hay.includes(query.trim().toLowerCase());
     });
-  }, [rows, filter, query, triage]);
+    if (statPin && filtered.some((row) => row.triage !== "STAT" && row.triage !== "symptomatic" && row.triage !== "screening" && row.triage !== null)) {
+      reportStatPinError();
+    }
+    return statPin ? pinStatFirst(filtered) : filtered;
+  }, [rows, filter, query, triage, statPin]);
 
   const open = rows?.find((row) => row.id === openId) ?? null;
   const counts = Object.fromEntries(filters.map(([id]) => [id, (rows ?? []).filter((row) => id === "all" || row.status === id).length]));
