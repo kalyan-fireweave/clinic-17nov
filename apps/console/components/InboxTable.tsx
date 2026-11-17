@@ -21,6 +21,8 @@ import { inFlight, listSignature } from "../lib/list";
 import { useTick } from "../lib/tick";
 import { ago } from "../lib/time";
 import { publishMetric } from "../lib/publish-metric";
+import { ownerLabel } from "../lib/owner-chip";
+import { reportOwnerChipError, useOwnerChip } from "./OwnerChip";
 import { ageTintBackground, waitingAgeMs } from "../lib/age-tint";
 import { reportAgeTintError, useAgeTint } from "./AgeTint";
 import { pdfFiles, postReferral } from "../lib/upload";
@@ -36,6 +38,7 @@ type Referral = {
   confidence?: number | null;
   sessionId?: string | null;
   createdAt?: string;
+  owner?: string | null;
 };
 
 type Field = { name: string; value: string; confidence?: number };
@@ -100,6 +103,7 @@ function nextLine(row: Referral) {
 
 export function InboxTable() {
   const now = useTick();
+  const ownerChip = useOwnerChip();
   const ageTint = useAgeTint();
   const { setInboxRows } = useCounts();
   const toast = useToast();
@@ -423,6 +427,7 @@ export function InboxTable() {
             </thead>
             <tbody>
               {visible.map((row) => {
+                if (ownerChip && row.owner !== undefined && row.owner !== null && !row.owner.trim()) reportOwnerChipError();
                 if (ageTint && row.createdAt && waitingAgeMs(row.createdAt, now) === null) reportAgeTintError();
                 const ready = row.status === "awaiting_review";
                 return (
@@ -434,6 +439,7 @@ export function InboxTable() {
                     <td>
                       <h2 className="patient">{row.patientName ?? row.filename}</h2>
                       <div className="muted">{row.filename}</div>
+                      {ownerChip ? <div className="muted">{ownerLabel(row.owner)}</div> : null}
                       {row.status === "extracting" ? <div className="read-bar"><i /></div> : null}
                       {nextLine(row) ? <p className="missing">{nextLine(row)}</p> : null}
                     </td>
