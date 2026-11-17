@@ -1,6 +1,7 @@
 "use client";
 
 import { X } from "lucide-react";
+import Link from "next/link";
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 import { IconButton } from "./Button";
 
@@ -9,6 +10,8 @@ export type ToastItem = {
   tone: "ok" | "error";
   title: string;
   code?: string;
+  sticky?: boolean;
+  href?: string;
 };
 
 type ToastApi = {
@@ -36,7 +39,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     (item: Omit<ToastItem, "id">) => {
       const id = crypto.randomUUID();
       setItems((current) => [...current, { ...item, id }].slice(-4));
-      if (item.tone === "ok") window.setTimeout(() => dismiss(id), 4000);
+      if (item.tone === "ok" && !item.sticky) window.setTimeout(() => dismiss(id), 4000);
     },
     [dismiss],
   );
@@ -63,7 +66,7 @@ export function ToastStack({ items, onDismiss }: { items: ToastItem[]; onDismiss
 
 function Toast({ item, onDismiss }: { item: ToastItem; onDismiss: (id: string) => void }) {
   return (
-    <div className={`toast ${item.tone}`} role={item.tone === "error" ? "alert" : "status"}>
+    <div className={`toast ${item.tone}`} role={item.tone === "error" || item.sticky ? "alert" : "status"}>
       <div className="toast-top">
         <div>
           <div>{item.title}</div>
@@ -72,14 +75,19 @@ function Toast({ item, onDismiss }: { item: ToastItem; onDismiss: (id: string) =
               {item.code}
             </button>
           ) : null}
+          {item.href ? (
+            <Link href={item.href} className="toast-link">
+              Review in Inbox
+            </Link>
+          ) : null}
         </div>
-        {item.tone === "error" ? (
+        {item.tone === "error" || item.sticky ? (
           <IconButton variant="ghost" aria-label="Dismiss" onClick={() => onDismiss(item.id)}>
             <X size={14} />
           </IconButton>
         ) : null}
       </div>
-      {item.tone === "ok" ? <div className="bar" /> : null}
+      {item.tone === "ok" && !item.sticky ? <div className="bar" /> : null}
     </div>
   );
 }
