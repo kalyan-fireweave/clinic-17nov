@@ -63,9 +63,8 @@ export function ThemeControl() {
       if (!alive) return;
       const started = performance.now();
       // @fireweave-controlpoint theme
-      const on = fw.controlPoints.getBooleanValue("theme", false);
-      // @fireweave-controlpoint theme
       const decision = fw.controlPoints.getBooleanDetails("theme", false);
+      const on = decision.value === true;
       if (!alive) return;
       if (decision.reason === "ERROR") {
         paint("light");
