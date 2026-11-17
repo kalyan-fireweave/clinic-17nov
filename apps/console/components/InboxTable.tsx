@@ -4,6 +4,8 @@ import { fw } from "@fireweaveai/web-sdk/start";
 import { ChevronRight } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Banner } from "./Banner";
+import { duplicatePatients } from "../lib/dup-hint";
+import { reportDupHintError, useDupHint } from "./DupHint";
 import { Button } from "./Button";
 import { ConfidenceBar } from "./ConfidenceBar";
 import { Drawer } from "./Drawer";
@@ -106,6 +108,7 @@ function nextLine(row: Referral) {
 
 export function InboxTable() {
   const now = useTick();
+  const dupHint = useDupHint();
   const emptyHint = useEmptyHint();
   const statPin = useStatPin();
   const ownerChip = useOwnerChip();
@@ -313,6 +316,8 @@ export function InboxTable() {
   }, [rows, filter, query, triage, statPin]);
 
   const open = rows?.find((row) => row.id === openId) ?? null;
+  const duplicates = dupHint ? duplicatePatients(rows ?? []) : [];
+  if (dupHint && (rows ?? []).some((row) => row.patientName === undefined)) reportDupHintError();
   const counts = Object.fromEntries(filters.map(([id]) => [id, (rows ?? []).filter((row) => id === "all" || row.status === id).length]));
   const triageCounts = Object.fromEntries(
     triageFilters.map(([id]) => [id, (rows ?? []).filter((row) => id === "all" || row.triage === id).length]),
@@ -379,6 +384,9 @@ export function InboxTable() {
             </button>
           ))}
         </div>
+        {duplicates.length > 0 ? (
+          <Banner>{duplicates.join(", ")} may have been sent twice. Check the waiting rows before you review.</Banner>
+        ) : null}
         {rows == null ? <Skeleton /> : null}
         {rows && rows.length === 0 ? (
           <EmptyState
