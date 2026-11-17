@@ -21,6 +21,9 @@ const NAMES = new Set([
   "clinic_stat_alert_error_total",
   "clinic_stat_alert_duration_ms",
   "clinic_stat_alert_unhealthy",
+  "clinic_age_tint_reached_total",
+  "clinic_age_tint_error_total",
+  "clinic_age_tint_unhealthy",
 ]);
 
 type MetricKind = "counter" | "gauge" | "histogram";
