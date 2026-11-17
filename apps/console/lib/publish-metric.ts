@@ -16,6 +16,11 @@ const NAMES = new Set([
   "clinic_triage_filter_error_total",
   "clinic_triage_filter_duration_ms",
   "clinic_triage_filter_unhealthy",
+  "clinic_stat_alert_reached_total",
+  "clinic_stat_alert_shown_total",
+  "clinic_stat_alert_error_total",
+  "clinic_stat_alert_duration_ms",
+  "clinic_stat_alert_unhealthy",
 ]);
 
 type MetricKind = "counter" | "gauge" | "histogram";
