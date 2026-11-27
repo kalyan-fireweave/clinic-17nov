@@ -111,7 +111,7 @@ export function InboxTable() {
   const dupHint = useDupHint();
   const emptyHint = useEmptyHint();
   useStatPin();
-  const ownerChip = useOwnerChip();
+  useOwnerChip();
   const ageTint = useAgeTint();
   const { setInboxRows } = useCounts();
   const toast = useToast();
@@ -446,7 +446,7 @@ export function InboxTable() {
             </thead>
             <tbody>
               {visible.map((row) => {
-                if (ownerChip && row.owner !== undefined && row.owner !== null && !row.owner.trim()) reportOwnerChipError();
+                if (row.owner !== undefined && row.owner !== null && !row.owner.trim()) reportOwnerChipError();
                 if (ageTint && row.createdAt && waitingAgeMs(row.createdAt, now) === null) reportAgeTintError();
                 const ready = row.status === "awaiting_review";
                 return (
@@ -458,7 +458,7 @@ export function InboxTable() {
                     <td>
                       <h2 className="patient">{row.patientName ?? row.filename}</h2>
                       <div className="muted">{row.filename}</div>
-                      {ownerChip ? <div className="muted">{ownerLabel(row.owner)}</div> : null}
+                      <div className="muted">{ownerLabel(row.owner)}</div>
                       {row.status === "extracting" ? <div className="read-bar"><i /></div> : null}
                       {nextLine(row) ? <p className="missing">{nextLine(row)}</p> : null}
                     </td>
