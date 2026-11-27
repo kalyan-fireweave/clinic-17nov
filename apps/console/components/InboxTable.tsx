@@ -108,7 +108,7 @@ function nextLine(row: Referral) {
 
 export function InboxTable() {
   const now = useTick();
-  const dupHint = useDupHint();
+  useDupHint();
   const emptyHint = useEmptyHint();
   useStatPin();
   useOwnerChip();
@@ -316,8 +316,8 @@ export function InboxTable() {
   }, [rows, filter, query, triage]);
 
   const open = rows?.find((row) => row.id === openId) ?? null;
-  const duplicates = dupHint ? duplicatePatients(rows ?? []) : [];
-  if (dupHint && (rows ?? []).some((row) => row.patientName === undefined)) reportDupHintError();
+  const duplicates = duplicatePatients(rows ?? []);
+  if ((rows ?? []).some((row) => row.patientName === undefined)) reportDupHintError();
   const counts = Object.fromEntries(filters.map(([id]) => [id, (rows ?? []).filter((row) => id === "all" || row.status === id).length]));
   const triageCounts = Object.fromEntries(
     triageFilters.map(([id]) => [id, (rows ?? []).filter((row) => id === "all" || row.triage === id).length]),
