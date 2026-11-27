@@ -110,7 +110,7 @@ export function InboxTable() {
   const now = useTick();
   const dupHint = useDupHint();
   const emptyHint = useEmptyHint();
-  const statPin = useStatPin();
+  useStatPin();
   const ownerChip = useOwnerChip();
   const ageTint = useAgeTint();
   const { setInboxRows } = useCounts();
@@ -309,11 +309,11 @@ export function InboxTable() {
       const hay = `${row.patientName ?? ""} ${row.filename} ${row.reason ?? ""}`.toLowerCase();
       return hay.includes(query.trim().toLowerCase());
     });
-    if (statPin && filtered.some((row) => row.triage !== "STAT" && row.triage !== "symptomatic" && row.triage !== "screening" && row.triage !== null)) {
+    if (filtered.some((row) => row.triage !== "STAT" && row.triage !== "symptomatic" && row.triage !== "screening" && row.triage !== null)) {
       reportStatPinError();
     }
-    return statPin ? pinStatFirst(filtered) : filtered;
-  }, [rows, filter, query, triage, statPin]);
+    return pinStatFirst(filtered);
+  }, [rows, filter, query, triage]);
 
   const open = rows?.find((row) => row.id === openId) ?? null;
   const duplicates = dupHint ? duplicatePatients(rows ?? []) : [];
