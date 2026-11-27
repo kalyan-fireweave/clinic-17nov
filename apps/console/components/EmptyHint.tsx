@@ -1,27 +1,18 @@
 "use client";
 
-import { fw } from "@fireweaveai/web-sdk/start";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { publishMetric } from "../lib/publish-metric";
 import { emptyHintCopy } from "../lib/empty-hint";
 
-export function useEmptyHint(): string | null {
-  const [on, setOn] = useState(false);
+export function useEmptyHint(): string {
   const reached = useRef(false);
   useEffect(() => {
-    const read = () => {
-      // @fireweave-controlpoint empty-hint
-      const next = fw.controlPoints.getBooleanValue("empty-hint", false);
-      setOn(next);
-      if (!next || reached.current) return;
-      reached.current = true;
-      void publishMetric("clinic_empty_hint_reached_total", 1, "counter", "empty-hint");
-      void publishMetric("clinic_empty_hint_unhealthy", 0, "gauge", "empty-hint");
-    };
-    read();
-    return fw.subscribe(read);
+    if (reached.current) return;
+    reached.current = true;
+    void publishMetric("clinic_empty_hint_reached_total", 1, "counter", "empty-hint");
+    void publishMetric("clinic_empty_hint_unhealthy", 0, "gauge", "empty-hint");
   }, []);
-  return on ? emptyHintCopy() : null;
+  return emptyHintCopy();
 }
 
 export function reportEmptyHintError() {
